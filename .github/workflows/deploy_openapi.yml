@@ -1,0 +1,50 @@
+name: Deploy OpenAPI Docs to S3
+
+on:
+  push:
+    branches:
+      - main  # `main` ブランチにプッシュされたら実行
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Linux 環境で実行
+
+    steps:
+      # 1️⃣ リポジトリのコードを取得
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Node.js をセットアップ（redocly/cli は Node.js ベース）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # 3️⃣ redocly/cli をインストール
+      - name: Install Redocly CLI
+        run: npm install -g @redocly/cli
+
+      # 4️⃣ OpenAPI の静的 HTML を生成
+      - name: Generate OpenAPI HTML
+        run: redocly build-docs openapi.yaml -o openapi.html
+
+      # 5️⃣ AWS 認証（OIDC を使用）
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gha-openapi-hosting-role
+          # role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsS3Uploader
+          role-session-name: GitHubActions
+          aws-region: ap-northeast-1  # Tokyo
+
+      # 6️⃣ 生成したファイルを S3 にアップロード
+      - name: Upload to S3
+        run: aws s3 cp openapi.html s3://openapi-redoc-qwer/index.html
+
+      # 7️⃣ CloudFront キャッシュを無効化（オプション）
+      - name: Invalidate CloudFront Cache
+        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
