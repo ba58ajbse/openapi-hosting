@@ -30,7 +30,7 @@ jobs:
 
       # 4️⃣ OpenAPI の静的 HTML を生成
       - name: Generate OpenAPI HTML
-        run: redocly build-docs openapi.yaml -o openapi.html
+        run: npx -y @redocly/cli build-docs openapi.yaml -o openapi.html
 
       # 5️⃣ AWS 認証（OIDC を使用）
       - name: Configure AWS Credentials
