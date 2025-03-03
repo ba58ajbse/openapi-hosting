@@ -20,6 +20,8 @@ jobs:
       # 1️⃣ リポジトリのコードを取得
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       # 2️⃣ Node.js をセットアップ（redocly/cli は Node.js ベース）
       - name: Setup Node.js
