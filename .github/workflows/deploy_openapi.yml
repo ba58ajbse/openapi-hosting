@@ -31,10 +31,6 @@ jobs:
       - name: Install Redocly CLI
         run: npm install -g @redocly/cli
 
-      # 4️⃣ OpenAPI の静的 HTML を生成
-      - name: Generate OpenAPI HTML
-        run: npx -y @redocly/cli build-docs openapi.yaml -o openapi.html
-
       # 5️⃣ AWS 認証（OIDC を使用）
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -43,9 +39,25 @@ jobs:
           role-session-name: GitHubActions
           aws-region: ap-northeast-1  # Tokyo
 
-      # 6️⃣ 生成したファイルを S3 にアップロード
-      - name: Upload to S3
-        run: aws s3 cp openapi.html s3://openapi-redoc-qwer/index.html
+      # 変更のあるファイルを取得
+      - name: Get changed files
+        id: changed-files
+        run: |
+          echo "modified_files=$(git diff --name-only HEAD^ HEAD | tr '\n' ' ')" >> $GITHUB_ENV
+
+      # 4️⃣ OpenAPI の静的 HTML を生成
+      - name: Generate OpenAPI HTML
+        if: contains(env.modified_files, 'openapi.yaml')
+        run: |
+          npx -y @redocly/cli build-docs openapi.yaml -o openapi.html
+          aws s3 cp openapi.html s3://openapi-redoc-qwer/A/index.html
+
+      # 4️⃣ OpenAPI の静的 HTML を生成
+      - name: Generate OpenAPI2 HTML
+        if: contains(env.modified_files, 'openapi2.yaml')
+        run: |
+          npx -y @redocly/cli build-docs openapi2.yaml -o openapi2.html
+          aws s3 cp openapi2.html s3://openapi-redoc-qwer/B/index.html
 
       # 7️⃣ CloudFront キャッシュを無効化（オプション）
       - name: Invalidate CloudFront Cache
